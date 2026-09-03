@@ -1,1 +1,143 @@
-<!DOCTYPE html><html lang="ru"><head> <meta charset="UTF-8"> <title>Просмотр файлов проекта .dt</title> <style> body { font-family: sans-serif; background: #1e1e1e; color: #fff; padding: 30px; max-width: 800px; margin: 0 auto; } .upload-zone { background: #252526; padding: 25px; border-radius: 8px; border: 2px dashed #007acc; text-align: center; margin-bottom: 30px; } input[type="file"] { display: block; margin: 15px auto; color: #ccc; } button { background: #ff9800; color: #000; font-weight: bold; border: none; padding: 12px 25px; border-radius: 4px; cursor: pointer; font-size: 16px; } button:hover { background: #e68a00; } .view-slide { background: #2d2d2d; padding: 20px; margin-bottom: 20px; border-radius: 6px; border-left: 6px solid #ff9800; box-shadow: 0 4px 10px rgba(0,0,0,0.3); } .view-slide h3 { margin-top: 0; color: #ff9800; } .view-slide p { font-size: 18px; line-height: 1.5; margin: 10px 0; } .view-slide img { max-width: 100%; max-height: 450px; display: block; margin-top: 15px; border-radius: 4px; background: #1a1a1a; border: 1px solid #444; } .empty-msg { color: #888; font-style: italic; text-align: center; margin-top: 5px; } </style></head><body> <h1>📂 Плеер документов .dt</h1> <div class="upload-zone"> <p style="margin-top: 0; font-size: 16px;">Выберите бинарный файл <b>Info.dt</b> для открытия проекта:</p> <input type="file" id="import-file-input" accept=".dt"> <button onclick="importFromDt()">Показать слайды</button> </div> <div id="viewer-container"> <p class="empty-msg">Файл не загружен. Выберите проект выше, чтобы запустить просмотр.</p> </div> <script> async function importFromDt() { const fileInput = document.getElementById('import-file-input').files[0]; if (!fileInput) { alert("Пожалуйста, сначала выберите файл .dt через обзор!"); return; } // Читаем файл в память как сырой массив байтов (ArrayBuffer) const buffer = await fileInput.arrayBuffer(); const view = new DataView(buffer); const uint8View = new Uint8Array(buffer); const decoder = new TextDecoder(); let offset = 0; // 1. Проверяем сигнатуру заголовка (Magic Bytes) const magicBytes = decoder.decode(uint8View.subarray(0, 4)); if (magicBytes !== "WSDV") { alert("Ошибка чтения: Этот файл поврежден или имеет неверный формат!"); return; } offset += 4; // 2. Считываем из байтов общее количество слайдов (2 байта) const totalSlides = view.getUint16(offset, false); offset += 2; const viewerContainer = document.getElementById('viewer-container'); viewerContainer.innerHTML = ""; // Очищаем стартовую надпись // 3. Поочередно вырезаем данные для каждого слайда for (let i = 0; i < totalSlides; i++) { // Читаем длину сохраненного текста (4 байта) const textLength = view.getUint32(offset, false); offset += 4; // Достаем сам текст по этой длине const slideText = decoder.decode(uint8View.subarray(offset, offset + textLength)); offset += textLength; // Читаем длину картинки (4 байта) const imageLength = view.getUint32(offset, false); offset += 4; let imgHtml = ""; // Если размер картинки больше нуля, вырезаем её бинарные данные if (imageLength > 0) { const imageBytes = uint8View.subarray(offset, offset + imageLength); offset += imageLength; // Конвертируем байты картинки в виртуальную локальную URL-ссылку для тега <img> const imgBlob = new Blob([imageBytes]); const imgUrl = URL.createObjectURL(imgBlob); imgHtml = `<img src="${imgUrl}" alt="Слайд ${i + 1}">`; } // Рендерим готовый чистый слайд на экран const slideViewHtml = ` <div class="view-slide"> <h3>Слайд No${i + 1}</h3> <p>${slideText || '<Текст в слайде отсутствует>'}</p> ${imgHtml} </div> `; viewerContainer.insertAdjacentHTML('beforeend', slideViewHtml); } } </script></body></html>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Просмотр файлов проекта .dt</title>
+  <style>
+    body { 
+      font-family: sans-serif; 
+      background: #1e1e1e; 
+      color: #fff; 
+      padding: 30px; 
+      max-width: 800px; 
+      margin: 0 auto; 
+    }
+    .upload-zone { 
+      background: #252526; 
+      padding: 25px; 
+      border-radius: 8px; 
+      border: 2px dashed #007acc; 
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    input[type="file"] { display: block; margin: 15px auto; color: #ccc; }
+    
+    button { 
+      background: #ff9800; 
+      color: #000; 
+      font-weight: bold; 
+      border: none; 
+      padding: 12px 25px; 
+      border-radius: 4px; 
+      cursor: pointer; 
+      font-size: 16px;
+    }
+    button:hover { background: #e68a00; }
+
+    .view-slide { 
+      background: #2d2d2d; 
+      padding: 20px; 
+      margin-bottom: 20px; 
+      border-radius: 6px; 
+      border-left: 6px solid #ff9800; 
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    .view-slide h3 { margin-top: 0; color: #ff9800; }
+    .view-slide p { font-size: 18px; line-height: 1.5; margin: 10px 0; }
+    .view-slide img { 
+      max-width: 100%; 
+      max-height: 450px; 
+      display: block; 
+      margin-top: 15px; 
+      border-radius: 4px; 
+      background: #1a1a1a; 
+      border: 1px solid #444;
+    }
+    .empty-msg { color: #888; font-style: italic; text-align: center; margin-top: 5px; }
+  </style>
+</head>
+<body>
+
+  <h1>📂 Плеер документов .dt</h1>
+  
+  <div class="upload-zone">
+    <p style="margin-top: 0; font-size: 16px;">Выберите бинарный файл <b>Info.dt</b> для открытия проекта:</p>
+    <input type="file" id="import-file-input" accept=".dt">
+    <button onclick="importFromDt()">Показать слайды</button>
+  </div>
+  
+  <div id="viewer-container">
+    <p class="empty-msg">Файл не загружен. Выберите проект выше, чтобы запустить просмотр.</p>
+  </div>
+
+  <script>
+    async function importFromDt() {
+      const fileInput = document.getElementById('import-file-input').files[0];
+      if (!fileInput) { 
+        alert("Пожалуйста, сначала выберите файл .dt через обзор!"); 
+        return; 
+      }
+
+      // Читаем файл в память как сырой массив байтов (ArrayBuffer)
+      const buffer = await fileInput.arrayBuffer();
+      const view = new DataView(buffer);
+      const uint8View = new Uint8Array(buffer);
+      const decoder = new TextDecoder();
+      let offset = 0;
+
+      // 1. Проверяем сигнатуру заголовка (Magic Bytes)
+      const magicBytes = decoder.decode(uint8View.subarray(0, 4));
+      if (magicBytes !== "WSDV") { 
+        alert("Ошибка чтения: Этот файл поврежден или имеет неверный формат!"); 
+        return; 
+      }
+      offset += 4;
+
+      // 2. Считываем из байтов общее количество слайдов (2 байта)
+      const totalSlides = view.getUint16(offset, false); 
+      offset += 2;
+
+      const viewerContainer = document.getElementById('viewer-container');
+      viewerContainer.innerHTML = ""; // Очищаем стартовую надпись
+
+      // 3. Поочередно вырезаем данные для каждого слайда
+      for (let i = 0; i < totalSlides; i++) {
+        
+        // Читаем длину сохраненного текста (4 байта)
+        const textLength = view.getUint32(offset, false); 
+        offset += 4;
+        
+        // Достаем сам текст по этой длине
+        const slideText = decoder.decode(uint8View.subarray(offset, offset + textLength));
+        offset += textLength;
+
+        // Читаем длину картинки (4 байта)
+        const imageLength = view.getUint32(offset, false); 
+        offset += 4;
+        let imgHtml = "";
+
+        // Если размер картинки больше нуля, вырезаем её бинарные данные
+        if (imageLength > 0) {
+          const imageBytes = uint8View.subarray(offset, offset + imageLength);
+          offset += imageLength;
+
+          // Конвертируем байты картинки в виртуальную локальную URL-ссылку для тега <img>
+          const imgBlob = new Blob([imageBytes]);
+          const imgUrl = URL.createObjectURL(imgBlob);
+          imgHtml = `<img src="${imgUrl}" alt="Слайд ${i + 1}">`;
+        }
+
+        // Рендерим готовый чистый слайд на экран
+        const slideViewHtml = `
+          <div class="view-slide">
+            <h3>Слайд №${i + 1}</h3>
+            <p>${slideText || '<Текст в слайде отсутствует>'}</p>
+            ${imgHtml}
+          </div>
+        `;
+        viewerContainer.insertAdjacentHTML('beforeend', slideViewHtml);
+      }
+    }
+  </script>
+</body>
+</html>
